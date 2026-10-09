@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Whisper Flow</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    .flow {
+      width: 246px;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 13px 0 17px;
+      border: 1px solid rgba(255, 255, 255, .11);
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 50% -80%, rgba(255, 255, 255, .08), transparent 55%),
+        linear-gradient(135deg, #241a1e 0%, #171318 72%, #24191d 100%);
+      box-shadow:
+        0 12px 30px rgba(0, 0, 0, .52),
+        inset 0 1px rgba(255, 255, 255, .06);
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+
+    button, .waveform { -webkit-app-region: no-drag; }
+
+    button {
+      border: 0;
+      padding: 0;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .stop-button {
+      width: 27px;
+      height: 27px;
+      flex: 0 0 27px;
+      display: grid;
+      place-items: center;
+      border: 2px solid #f5f6f8;
+      border-radius: 50%;
+      background: transparent;
+      transition: transform .16s ease, background .16s ease;
+    }
+
+    .stop-button::after {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      background: #f5f6f8;
+    }
+
+    .stop-button:hover { transform: scale(1.07); background: rgba(255, 255, 255, .1); }
+
+    .microphone {
+      width: 17px;
+      height: 25px;
+      flex: 0 0 17px;
+      display: grid;
+      place-items: center;
+      color: #f8f9fb;
+      background: transparent;
+      opacity: .94;
+    }
+
+    .microphone svg { width: 17px; height: 25px; display: block; }
+
+    .waveform {
+      min-width: 96px;
+      flex: 1;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .bar {
+      width: 15px;
+      height: 22px;
+      border-radius: 99px;
+      background: #f8f9fb;
+      box-shadow: 0 1px 8px rgba(255, 255, 255, .14);
+      transition: height .16s ease, opacity .16s ease;
+    }
+
+    .bar:nth-child(2) { height: 53px; }
+    .bar:nth-child(3) { height: 36px; }
+    .bar:nth-child(4) { height: 22px; }
+
+    .recording .bar:nth-child(1) { animation: wave-one .72s ease-in-out infinite alternate; }
+    .recording .bar:nth-child(2) { animation: wave-two .58s ease-in-out infinite alternate; }
+    .recording .bar:nth-child(3) { animation: wave-three .68s ease-in-out infinite alternate; }
+    .recording .bar:nth-child(4) { animation: wave-four .63s ease-in-out infinite alternate; }
+
+    @keyframes wave-one { to { height: 35px; } }
+    @keyframes wave-two { to { height: 42px; } }
+    @keyframes wave-three { to { height: 52px; } }
+    @keyframes wave-four { to { height: 31px; } }
+
+    .close-button {
+      width: 31px;
+      height: 31px;
+      flex: 0 0 31px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #dc4149;
+      color: #fff;
+      font-size: 25px;
+      font-weight: 300;
+      line-height: 1;
+      padding-bottom: 3px;
+      transition: transform .16s ease, background .16s ease;
+    }
+
+    .close-button:hover { transform: scale(1.07); background: #ef5058; }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <main class="flow" id="flow" aria-label="Whisper Flow controls">
+    <button class="stop-button" id="stop" type="button" title="Start or stop recording">
+      <span class="sr-only">Start or stop recording</span>
+    </button>
+
+    <button class="microphone" id="microphone" type="button" title="Microphone">
+      <svg viewBox="0 0 24 34" fill="none" aria-hidden="true">
+        <rect x="7" y="1" width="10" height="20" rx="5" fill="currentColor"/>
+        <path d="M3 16v1a9 9 0 0 0 18 0v-1M12 26v6M8 32h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="sr-only">Microphone</span>
+    </button>
+
+    <div class="waveform" id="waveform" title="Start or stop recording" role="button" tabindex="0">
+      <i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i>
+    </div>
+
+    <button class="close-button" id="close" type="button" title="Close">×</button>
+  </main>
+
+  <script>
+    const flow = document.getElementById('flow');
+    const stop = document.getElementById('stop');
+    const microphone = document.getElementById('microphone');
+    const waveform = document.getElementById('waveform');
+    const close = document.getElementById('close');
+
+    function render(data) {
+      flow.classList.toggle('recording', Boolean(data.recording));
+    }
+
+    async function refresh() {
+      try {
+        render(await (await fetch('/api/status')).json());
+      } catch (_) {
+        // The FastAPI process may be starting; keep the visual shell alive.
+      }
+    }
+
+    async function toggleRecording() {
+      try {
+        render(await (await fetch('/api/toggle', { method: 'POST' })).json());
+      } catch (_) {}
+    }
+
+    stop.addEventListener('click', toggleRecording);
+    microphone.addEventListener('click', toggleRecording);
+    waveform.addEventListener('click', toggleRecording);
+    waveform.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') toggleRecording();
+    });
+    close.addEventListener('click', () => window.close());
+
+    refresh();
+    setInterval(refresh, 500);
+  </script>
+</body>
+</html>

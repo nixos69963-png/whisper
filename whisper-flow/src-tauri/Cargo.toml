@@ -1,0 +1,22 @@
+[package]
+name = "whisper-flow"
+version = "0.1.0"
+description = "Whisper Flow floating dictation widget"
+authors = ["Whisper Flow"]
+edition = "2021"
+
+[lib]
+name = "whisper_flow_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+default-run = "whisper-flow"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
